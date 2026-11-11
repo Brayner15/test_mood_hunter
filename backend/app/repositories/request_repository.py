@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, lazyload
 
 from app.domain.status import StatusCode
 from app.models.request import Request
@@ -28,6 +28,22 @@ class RequestRepository:
 
     def get_by_id(self, request_id: int) -> Request | None:
         return self.db.get(Request, request_id)
+
+    def get_by_id_for_update(self, request_id: int) -> Request | None:
+        """Lee la fila bloqueándola hasta el commit/rollback.
+
+        Evita que dos transiciones concurrentes se pisen. En SQLite el
+        `FOR UPDATE` se ignora; en MySQL bloquea la fila de `requests`.
+        Se evita el eager join a `statuses` porque MySQL no permite
+        `FOR UPDATE` sobre el lado nullable de un outer join.
+        """
+        stmt = (
+            select(Request)
+            .options(lazyload(Request.status))
+            .where(Request.id == request_id)
+            .with_for_update()
+        )
+        return self.db.scalar(stmt)
 
     def list_paginated(
         self,

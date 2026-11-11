@@ -10,6 +10,7 @@ from app.schemas.request import (
     RequestPage,
     RequestUpdate,
 )
+from app.schemas.transition import TransitionOptions, TransitionRequest
 
 router = APIRouter()
 
@@ -66,3 +67,26 @@ def update_request(
 ) -> RequestOut:
     """Edita título y/o descripción. No permite cambiar el estado."""
     return RequestOut.model_validate(service.update(request_id, payload))
+
+
+@router.get("/{request_id}/transitions", response_model=TransitionOptions)
+def get_transitions(
+    service: RequestServiceDep,
+    request_id: Annotated[int, Path(ge=1)],
+) -> TransitionOptions:
+    """Transiciones que la UI puede ofrecer desde el estado actual."""
+    request, allowed = service.get_transitions(request_id)
+    return TransitionOptions(
+        current=request.status,
+        allowed=allowed,
+    )
+
+
+@router.post("/{request_id}/transitions", response_model=RequestOut)
+def transition_request(
+    payload: TransitionRequest,
+    service: RequestServiceDep,
+    request_id: Annotated[int, Path(ge=1)],
+) -> RequestOut:
+    """Ejecuta una transición. 409 si no está permitida desde el estado actual."""
+    return RequestOut.model_validate(service.transition(request_id, payload))
