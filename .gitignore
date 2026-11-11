@@ -1,0 +1,22 @@
+# Entorno
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+*.local
+
+# Editor / sistema
+.DS_Store
+.idea/
+.vscode/
+*.log
