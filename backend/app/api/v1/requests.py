@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Path, Query, status
 
-from app.api.deps import RequestServiceDep
+from app.api.deps import RequestServiceDep, SummaryServiceDep
 from app.domain.status import StatusCode
 from app.schemas.request import (
     RequestCreate,
@@ -10,6 +10,7 @@ from app.schemas.request import (
     RequestPage,
     RequestUpdate,
 )
+from app.schemas.summary import SummaryOut
 from app.schemas.transition import TransitionOptions, TransitionRequest
 
 router = APIRouter()
@@ -49,6 +50,17 @@ def list_requests(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/summary", response_model=SummaryOut)
+async def summarize_requests(service: SummaryServiceDep) -> SummaryOut:
+    """Resumen del tablero generado por el LLM.
+
+    Endpoint independiente: si el proveedor falla, responde 200 con
+    `status: unavailable` y el listado sigue funcionando con normalidad.
+    """
+    result = await service.generate()
+    return SummaryOut.model_validate(result)
 
 
 @router.get("/{request_id}", response_model=RequestOut)

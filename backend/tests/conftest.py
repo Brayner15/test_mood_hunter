@@ -9,6 +9,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models.status import Status
+from app.services.summary_service import get_summary_cache
 
 STATUS_SEED = [
     (1, "created", "Creada", 1, False),
@@ -17,6 +18,14 @@ STATUS_SEED = [
     (4, "paused", "Pausada", 4, False),
     (5, "done", "Finalizada", 5, True),
 ]
+
+
+@pytest.fixture(autouse=True)
+def clear_summary_cache():
+    """Evita que el cache global filtre resúmenes entre tests."""
+    get_summary_cache().clear()
+    yield
+    get_summary_cache().clear()
 
 
 @pytest.fixture()

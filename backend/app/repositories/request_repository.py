@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, lazyload
+from sqlalchemy.orm import Session, contains_eager, lazyload
 
 from app.domain.status import StatusCode
 from app.models.request import Request
@@ -76,3 +76,39 @@ class RequestRepository:
         request.status_id = status.id
         self.db.flush()
         return request
+
+    def count_by_status(self) -> dict[str, int]:
+        """Conteo por estado, incluyendo estados con cero solicitudes."""
+        stmt = (
+            select(Status.code, func.count(Request.id))
+            .outerjoin(Request, Request.status_id == Status.id)
+            .group_by(Status.id, Status.code, Status.sort_order)
+            .order_by(Status.sort_order)
+        )
+        return {code: count for code, count in self.db.execute(stmt).all()}
+
+    def list_paused(self, limit: int) -> Sequence[Request]:
+        stmt = (
+            select(Request)
+            .join(Request.status)
+            .options(contains_eager(Request.status))
+            .where(Status.code == StatusCode.PAUSED.value)
+            .order_by(Request.updated_at.asc(), Request.id.asc())
+            .limit(limit)
+        )
+        return self.db.scalars(stmt).all()
+
+    def list_oldest_open(self, limit: int) -> Sequence[Request]:
+        """Solicitudes no finales que llevan más tiempo sin cambios (sin pausadas)."""
+        stmt = (
+            select(Request)
+            .join(Request.status)
+            .options(contains_eager(Request.status))
+            .where(
+                Status.is_final.is_(False),
+                Status.code != StatusCode.PAUSED.value,
+            )
+            .order_by(Request.updated_at.asc(), Request.id.asc())
+            .limit(limit)
+        )
+        return self.db.scalars(stmt).all()
