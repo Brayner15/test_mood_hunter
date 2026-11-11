@@ -24,6 +24,7 @@ def test_crear_solicitud_entra_en_created(client: TestClient) -> None:
     assert body["status"]["label"] == "Creada"
     assert body["created_at"].endswith("Z")
     assert body["updated_at"].endswith("Z")
+    assert body["allowed_transitions"] == ["in_review"]
     assert "status_id" not in body
 
 

@@ -45,6 +45,7 @@ def test_transicion_valida_created_a_in_review(client: TestClient) -> None:
     body = response.json()
     assert body["status"]["code"] == "in_review"
     assert body["status"]["label"] == "En revisión"
+    assert body["allowed_transitions"] == ["in_progress", "paused"]
     assert body["created_at"].endswith("Z")
     assert body["updated_at"].endswith("Z")
 
@@ -89,6 +90,8 @@ def test_flujo_de_pausa_completo(client: TestClient) -> None:
         "in_review",
         "in_progress",
     ]
+    detail = client.get(f"/api/v1/requests/{request['id']}").json()
+    assert detail["allowed_transitions"] == ["in_review", "in_progress"]
 
     # No se puede finalizar sin reanudar.
     rejected = move(client, request["id"], "done")
@@ -135,6 +138,8 @@ def test_done_es_final(client: TestClient) -> None:
 
     options = client.get(f"/api/v1/requests/{request['id']}/transitions")
     assert options.json()["allowed"] == []
+    done_request = client.get(f"/api/v1/requests/{request['id']}").json()
+    assert done_request["allowed_transitions"] == []
 
     for target in ["created", "in_review", "in_progress", "paused", "done"]:
         response = move(client, request["id"], target)

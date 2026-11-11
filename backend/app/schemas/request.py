@@ -4,10 +4,13 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    computed_field,
     field_serializer,
     model_validator,
 )
 
+from app.domain.status import StatusCode, status_sort_key
+from app.domain.transitions import allowed_transitions
 from app.schemas.status import StatusOut
 
 
@@ -50,6 +53,18 @@ class RequestOut(BaseModel):
         if value.tzinfo is None:
             value = value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def allowed_transitions(self) -> list[StatusCode]:
+        """Destinos válidos desde el estado actual, calculados por el dominio.
+
+        La UI solo ofrece estos botones; el backend vuelve a validar al ejecutar.
+        """
+        return sorted(
+            allowed_transitions(StatusCode(self.status.code)),
+            key=status_sort_key,
+        )
 
 
 class RequestPage(BaseModel):
