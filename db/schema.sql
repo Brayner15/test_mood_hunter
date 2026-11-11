@@ -6,6 +6,10 @@
 --   mysql -u root -p < db/schema.sql
 -- =============================================================================
 
+-- El cliente debe interpretar el archivo como UTF-8 aunque el contenedor no
+-- tenga configurado un locale UTF-8 (evita títulos con acentos corruptos).
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE DATABASE IF NOT EXISTS solicitudes
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
